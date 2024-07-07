@@ -3,6 +3,7 @@ package service
 import (
 	"chat-server/repository"
 	"chat-server/types/schema"
+	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"log"
@@ -23,6 +24,29 @@ func (service *Service) ServerSet(ip string, available bool) error {
 		return err
 	} else {
 		return nil
+	}
+}
+
+func (service *Service) PublishServerStatusEvent(ip string, status bool) {
+	type ServerInfoEvent struct {
+		IP     string
+		Status bool
+	}
+
+	event := &ServerInfoEvent{
+		IP:     ip,
+		Status: status,
+	}
+
+	ch := make(chan kafka.Event)
+
+	if value, err := json.Marshal(event); err != nil {
+		log.Println("Failed to Marshal")
+	} else if result, err := service.PublishEvent("chat", value, ch); err != nil {
+		log.Println("Failed to send Event to kafka", "err", err)
+	} else {
+		// Send Event to kafka
+		log.Println("Success to send Event to kafka", result)
 	}
 }
 

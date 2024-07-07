@@ -4,6 +4,8 @@ import (
 	"chat-controller/repository"
 	"chat-controller/types/table"
 	"fmt"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"log"
 )
 
 type Service struct {
@@ -14,7 +16,27 @@ type Service struct {
 func NewService(repository *repository.Repository) *Service {
 	service := &Service{repository: repository, ServerList: make(map[string]bool)}
 	service.setServerInfo()
+
+	if err := service.repository.Kafka.RegisterSubTopic("chat"); err != nil {
+		panic(err)
+	} else {
+		go service.loopSubKafka()
+	}
+
 	return service
+}
+
+func (service *Service) loopSubKafka() {
+	for {
+		ev := service.repository.Kafka.Poll(100)
+		switch event := ev.(type) {
+		case *kafka.Message:
+			fmt.Println(event)
+
+		case *kafka.Error:
+			log.Println("Failed to Polling Event", event.Error())
+		}
+	}
 }
 
 func (service *Service) setServerInfo() {

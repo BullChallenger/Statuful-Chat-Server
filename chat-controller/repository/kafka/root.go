@@ -7,20 +7,32 @@ import (
 
 type Kafka struct {
 	config   *config.Config
-	producer *kafka.Producer
+	consumer *kafka.Consumer
 }
 
 func NewKafka(config *config.Config) (*Kafka, error) {
 	k := &Kafka{config: config}
 	var err error
 
-	if k.producer, err = kafka.NewProducer(&kafka.ConfigMap{
+	if k.consumer, err = kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": config.Kafka.URL,
-		"client.id":         config.Kafka.ClientID,
-		"acks":              "all", // 메시지 전송 시 고가용성을 위해 복제본을 어디까지 저장할지에 대한 설정 값
+		"group.id":          config.Kafka.GroupID,
+		"auto.offset.reset": "latest",
 	}); err != nil {
 		return nil, err
 	} else {
 		return k, nil
+	}
+}
+
+func (k *Kafka) Poll(timeoutMs int) kafka.Event {
+	return k.consumer.Poll(timeoutMs)
+}
+
+func (k *Kafka) RegisterSubTopic(topic string) error {
+	if err := k.consumer.Subscribe(topic, nil); err != nil {
+		return err
+	} else {
+		return nil
 	}
 }

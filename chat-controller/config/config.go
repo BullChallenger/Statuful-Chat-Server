@@ -12,8 +12,8 @@ type Config struct {
 	}
 
 	Kafka struct {
-		URL      string
-		ClientID string
+		URL     string
+		GroupID string
 	}
 
 	Info struct {
